@@ -74,6 +74,5 @@ class RemindersLocalRepositoryTest {
         assertThat(dataFromSource.data.longitude, `is`(reminderDTO.longitude))
     }
 
-//    TODO: Add testing implementation to the RemindersLocalRepository.kt
 
 }

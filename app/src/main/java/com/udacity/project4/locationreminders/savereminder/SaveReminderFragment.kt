@@ -26,7 +26,6 @@ import org.koin.android.ext.android.inject
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
-val GEOFENCE_EXPIRATION_IN_MILLISECONDS: Long = TimeUnit.HOURS.toMillis(1)
 class SaveReminderFragment : BaseFragment() {
     //Get the view model this time as a single to be shared with the another fragment
     override val _viewModel: SaveReminderViewModel by inject()
@@ -90,6 +89,7 @@ class SaveReminderFragment : BaseFragment() {
         // addGeofences() and removeGeofences().
         PendingIntent.getBroadcast(requireActivity(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
     }
+
     private fun setGeoFenceClue(reminderData: ReminderDataItem) {
         if (reminderData.latitude == null || reminderData.latitude == null) {
             return
