@@ -10,9 +10,10 @@ class FakeReminderDataSource : ReminderDataSource {
     var returnError: Boolean = false
 
     override suspend fun getReminders(): Result<List<ReminderDTO>> {
-        return reminderList?.let {
-            Result.Success(it)
+        if (returnError && reminderList!!.isEmpty()) {
+            return Result.Error("Empty Data")
         }
+        return Result.Success(ArrayList(reminderList))
     }
 
     override suspend fun saveReminder(reminder: ReminderDTO) {

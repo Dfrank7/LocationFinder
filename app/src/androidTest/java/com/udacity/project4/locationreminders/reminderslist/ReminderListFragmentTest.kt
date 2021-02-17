@@ -1,5 +1,6 @@
 package com.udacity.project4.locationreminders.reminderslist
 
+import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.testing.launchFragmentInContainer
@@ -16,6 +17,8 @@ import androidx.test.filters.MediumTest
 import com.udacity.project4.R
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.local.FakeReminderDataSource
+import com.udacity.project4.locationreminders.data.local.LocalDB
+import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
@@ -23,6 +26,13 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.android.ext.koin.androidContext
+import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
+import org.koin.test.KoinTest
+import org.koin.test.get
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 
@@ -30,13 +40,43 @@ import org.mockito.Mockito.verify
 @ExperimentalCoroutinesApi
 //UI Testing
 @MediumTest
-class ReminderListFragmentTest {
+class ReminderListFragmentTest : KoinTest {
 
     private lateinit var fakeRepo: FakeReminderDataSource
+    private lateinit var appContext: Application
 
     @Before
-    fun setUpRepository() {
-        fakeRepo = FakeReminderDataSource()
+    fun init() {
+        stopKoin()//stop the original app koin
+        appContext = getApplicationContext()
+        val myModule = module {
+            viewModel {
+                RemindersListViewModel(
+                        appContext,
+                        get() as FakeReminderDataSource
+                )
+            }
+            single {
+                SaveReminderViewModel(
+                        appContext,
+                        get() as FakeReminderDataSource
+                )
+            }
+            single { FakeReminderDataSource() }
+            single { LocalDB.createRemindersDao(appContext) }
+        }
+        //declare a new koin module
+        startKoin {
+            androidContext(appContext)
+            modules(listOf(myModule))
+        }
+        //Get our real repository
+        fakeRepo = get()
+
+//        clear the data to start fresh
+        runBlocking {
+            fakeRepo.deleteAllReminders()
+        }
     }
 
     @Test
@@ -81,7 +121,6 @@ class ReminderListFragmentTest {
         scenario.onFragment {
             Navigation.setViewNavController(it.view!!, navController)
         }
-
 
         onView(withId(R.id.addReminderFAB)).perform(click())
 

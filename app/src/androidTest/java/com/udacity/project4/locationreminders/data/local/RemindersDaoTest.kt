@@ -64,6 +64,16 @@ class RemindersDaoTest {
 
     }
 
-//    TODO: Add testing implementation to the RemindersDao.kt
+
+    @Test
+    fun gettingDataFromDb_returnsNull() = runBlockingTest {
+
+        //WHEN- INVALID DATA IS RETRIEVED FROM DATABASE.
+        val dataFromSource = database.reminderDao().getReminderById("id")
+
+        //THEN- NULL VALUE IS RETURNED.
+        assertThat(dataFromSource, `is`(CoreMatchers.nullValue()))
+
+    }
 
 }

@@ -29,7 +29,7 @@ class RemindersLocalRepositoryTest {
     private lateinit var database: RemindersDatabase
     private lateinit var remindersLocalRepository: RemindersLocalRepository
 
-    // Executes each task synchronously using Architecture Components.
+    // Executes each task synchronously
     @get:Rule
     var instantTaskExecutorRule = InstantTaskExecutorRule()
 
@@ -48,11 +48,11 @@ class RemindersLocalRepositoryTest {
     fun close() = database.close()
 
     @Test
-    fun insertReminder_RetrieveFromRepositoryById_BothAreSame() = runBlocking {
+    fun insertReminder_RetrieveFromRepoById_BothAreTheSame() = runBlocking {
         //GIVEN- REMINDER IS INSERTED IN TO DATABASE.
         val reminderDTO = ReminderDTO(
                 "test title",
-                "test description", "test location", 10.0, 10.0, "id1"
+                "test description", "test location", 10.0, 20.0, "id"
         )
         remindersLocalRepository.saveReminder(reminderDTO)
 
@@ -72,6 +72,26 @@ class RemindersLocalRepositoryTest {
         assertThat(dataFromSource.data.location, `is`(reminderDTO.location))
         assertThat(dataFromSource.data.latitude, `is`(reminderDTO.latitude))
         assertThat(dataFromSource.data.longitude, `is`(reminderDTO.longitude))
+    }
+
+
+    @Test
+    fun retrieveInvalidData_returnsResultError() = runBlocking {
+        //GIVEN THE REPOSITORY.
+
+        //WHEN- INVALID DATA IS RETRIEVED FROM REPOSITORY.
+        val dataFromSource = remindersLocalRepository.getReminder("test id")
+
+        //THEN- RETURNS RESULT.ERROR.
+        assertThat(
+                dataFromSource,
+                CoreMatchers.not(CoreMatchers.nullValue())
+        )
+        dataFromSource as Result.Error
+        assertThat(
+                dataFromSource,
+                `is`(Result.Error("Reminder not found!"))
+        )
     }
 
 

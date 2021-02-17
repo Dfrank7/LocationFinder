@@ -44,19 +44,17 @@ import org.koin.test.get
 @LargeTest
 //END TO END test to black box test the app
 class RemindersActivityTest :
-    AutoCloseKoinTest() {// Extended Koin Test - embed autoclose @after method to close Koin after every test
+        AutoCloseKoinTest() {// Extended Koin Test - embed autoclose @after method to close Koin after every test
 
     private lateinit var repository: ReminderDataSource
     private lateinit var appContext: Application
     private val dataBindingIdlingResource = DataBindingIdlingResource()
+    private lateinit var viewModel: SaveReminderViewModel
     private lateinit var decorView: View
 
+    //rule is used to get decorview required to test whether toast is shown.
     @get:Rule
     var activityScenarioRule = ActivityScenarioRule(RemindersActivity::class.java)
-
-    @Rule
-    @JvmField
-    val grantPermissionRule: GrantPermissionRule = GrantPermissionRule.grant(android.Manifest.permission.ACCESS_FINE_LOCATION)
 
     @Before
     fun setUp() {
@@ -76,14 +74,14 @@ class RemindersActivityTest :
         val myModule = module {
             viewModel {
                 RemindersListViewModel(
-                    appContext,
-                    get() as ReminderDataSource
+                        appContext,
+                        get() as ReminderDataSource
                 )
             }
             single {
                 SaveReminderViewModel(
-                    appContext,
-                    get() as ReminderDataSource
+                        appContext,
+                        get() as ReminderDataSource
                 )
             }
             single { RemindersLocalRepository(get()) as ReminderDataSource }
@@ -91,10 +89,12 @@ class RemindersActivityTest :
         }
         //declare a new koin module
         startKoin {
+            //androidLogger(Level.DEBUG)
             modules(listOf(myModule))
         }
         //Get our real repository
         repository = get()
+        viewModel = get()
 
         //clear the data to start fresh
         runBlocking {
@@ -102,6 +102,7 @@ class RemindersActivityTest :
         }
     }
 
+    //seems like the idling resource is not required for this test. But added it for safety.
     @Before
     fun registerIdlingResource() {
         IdlingRegistry.getInstance().register(EspressoIdlingResource.countingIdlingResource)
@@ -114,35 +115,71 @@ class RemindersActivityTest :
         IdlingRegistry.getInstance().unregister(dataBindingIdlingResource)
     }
 
+
     @Test
     fun navigateTo_selectLocation_clickSave_showToast() = runBlocking {
+        repository.saveReminder(
+                ReminderDTO(
+                        "test title",
+                        "test description", "test location", 10.0, 10.0, "id1"
+                )
+        )
 
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        //seems like the idling resource is not required for this test. But added it for safety.
         dataBindingIdlingResource.monitorActivity(activityScenario)
 
-        //get
+        //inside reminderlistfragment.
+        Espresso.onView(ViewMatchers.withText("test title")).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
         Espresso.onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
-        Espresso.onView(withId(R.id.reminderTitle)).perform(
-                ViewActions.typeText("new title"),
-                ViewActions.closeSoftKeyboard()
-        )
-        Espresso.onView(withId(R.id.reminderDescription)).perform(
-                ViewActions.typeText("new description"),
-                ViewActions.closeSoftKeyboard()
-        )
-        Espresso.onView(withId(R.id.selectLocation)).perform(ViewActions.click())
 
-        Espresso.onView(withId(R.id.map)).perform(ViewActions.longClick())
+        //inside savereminderfragment.
+        Espresso.onView(withId(R.id.reminderTitle)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        Espresso.onView(withId(R.id.reminderTitle)).perform(ViewActions.typeText("new title"))
+                .perform(ViewActions.closeSoftKeyboard())
+        Espresso.onView(withId(R.id.reminderDescription)).perform(ViewActions.typeText("new description"))
+                .perform(ViewActions.closeSoftKeyboard())
 
-        Espresso.onView(withId(R.id.btnConfirm)).perform(ViewActions.click())
+        viewModel.latitude.postValue(20.0)
+        viewModel.longitude.postValue(20.0)
+        viewModel.reminderSelectedLocationStr.postValue("location")
+
+        //navigate to reminderlist fragment after saving data.
+        Espresso.onView(withId(R.id.saveReminder)).perform(ViewActions.click())
+
+        Espresso.onView(ViewMatchers.withText("new title")).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        Espresso.onView(ViewMatchers.withText("new description")).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+
+        Espresso.onView(withId(R.id.addReminderFAB)).perform(ViewActions.click())
+
+        //checks if savereminderfragment views and snackbars shown
+        Espresso.onView(withId(R.id.reminderTitle)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
 
         Espresso.onView(withId(R.id.saveReminder)).perform(ViewActions.click())
 
-        //verify new reminder
-        Espresso.onView(ViewMatchers.withText("new title")).check(ViewAssertions.matches(ViewMatchers.withText("new title")))
+        //checks if snackbar shown.
+        Espresso.onView(withId(com.google.android.material.R.id.snackbar_text)).check(ViewAssertions.matches(ViewMatchers.withText(R.string.err_enter_title)))
+
+        Espresso.onView(withId(R.id.reminderTitle)).perform(ViewActions.typeText("new title"))
+                .perform(ViewActions.closeSoftKeyboard())
+        Espresso.onView(withId(R.id.saveReminder)).perform(ViewActions.click())
+
+        Espresso.onView(withId(R.id.reminderDescription)).perform(ViewActions.typeText("new description"))
+                .perform(ViewActions.closeSoftKeyboard())
+        Espresso.onView(withId(R.id.saveReminder)).perform(ViewActions.click())
+        Espresso.onView(withId(R.id.selectLocation)).perform(ViewActions.click())
+        Espresso.onView(withId(R.id.btnConfirm)).check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+
+        Espresso.onView(withId(R.id.btnConfirm)).perform(ViewActions.click())
+
+        //testing for toast.
+        Espresso.onView(ViewMatchers.withText(R.string.select_poi)).inRoot(RootMatchers.withDecorView(CoreMatchers.not(decorView))).check(
+                ViewAssertions.matches(
+                        ViewMatchers.isDisplayed()
+                )
+        )
 
         activityScenario.close()
     }
-
 
 }
