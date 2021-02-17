@@ -239,7 +239,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 Log.i(TAG, "exception shown as unresolvable in failure listener")
                 Snackbar.make(
                         requireView(),
-                        R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
+                        R.string.location_required_error, Snackbar.LENGTH_LONG
                 ).setAction(android.R.string.ok) {
                     checkDeviceLocationSettings_requestToTurnOnifNotAlready()
                 }.show()
@@ -273,7 +273,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             Snackbar.make(
                 requireView(),
                 R.string.permission_denied_explanation,
-                Snackbar.LENGTH_INDEFINITE
+                Snackbar.LENGTH_LONG
             )
                 .setAction(R.string.settings) {
                     startActivity(Intent().apply {
