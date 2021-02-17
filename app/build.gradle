@@ -116,7 +116,8 @@ dependencies {
     implementation "androidx.fragment:fragment:$fragmentVersion"
     androidTestImplementation "org.mockito:mockito-core:$mockitoVersion"
     androidTestImplementation "com.linkedin.dexmaker:dexmaker-mockito:$dexMakerVersion"
-    androidTestImplementation('org.koin:koin-test:2.0.1') { exclude group: 'org.mockito' }
+    testImplementation "org.koin:koin-test:$koinVersion"
+    androidTestImplementation('org.koin:koin-test:2.1.0') { exclude group: 'org.mockito' }
 
 
 
